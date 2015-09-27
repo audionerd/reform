@@ -2,11 +2,12 @@ require "test_helper"
 
 class PopulatorTest < MiniTest::Spec
   Album = Struct.new(:songs)
-  Song  = Struct.new(:name)
+  Song  = Struct.new(:title)
 
   class AlbumForm < Reform::Form
     collection :songs, deserializer: {
-          instance: ->(fragment, *options) { puts "@@@@@ #{fragment.inspect}" }
+          instance: ->(fragment, *options) { songs << Song.new; songs.last },
+          # deserialize: ->(object, fragment, options) { puts "@@@@@ #{object.inspect}" }
         } do
       property :title
     end
@@ -22,6 +23,8 @@ class PopulatorTest < MiniTest::Spec
       # next unless dfn[:twin]
       dfn.merge!(
         deserialize: lambda { |decorator, params, options|
+          puts decorator.represented
+
           params = decorator.represented.deserialize!(params) # let them set up params. # FIXME: we could also get a new deserializer here.
 
           decorator.from_hash(params) # options.binding.deserialize_method.inspect
@@ -30,7 +33,7 @@ class PopulatorTest < MiniTest::Spec
     end
 
   it do
-    form = AlbumForm.new(Album.new)
+    form = AlbumForm.new(Album.new([]))
     hash = {songs: [{title: "Good"}, {title: "Bad"}]}
 
     Deserializer.new(form).from_hash hash
