@@ -5,7 +5,9 @@ class PopulatorTest < MiniTest::Spec
   Song  = Struct.new(:name)
 
   class AlbumForm < Reform::Form
-    collection :songs do
+    collection :songs, deserializer: {
+          instance: ->(fragment, *options) { puts "@@@@@ #{fragment.inspect}" }
+        } do
       property :title
     end
   end
