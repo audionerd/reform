@@ -4,10 +4,19 @@ class PopulatorTest < MiniTest::Spec
   Album = Struct.new(:songs)
   Song  = Struct.new(:title)
 
+  class Skip;end
   class AlbumForm < Reform::Form
+
     collection :songs, deserializer: {
-          instance: ->(fragment, *options) { songs << Song.new; songs.last },
-          # deserialize: ->(object, fragment, options) { puts "@@@@@ #{object.inspect}" }
+          instance: ->(fragment, *options) {
+            if fragment[:title] == "Good"
+              Skip
+            else
+              songs << Song.new; songs.last
+            end
+             },
+          # deserialize: ->(object, fragment, options) { puts "@@@@@ #{object.inspect}" },
+          setter: nil
         } do
       property :title
     end
@@ -23,10 +32,11 @@ class PopulatorTest < MiniTest::Spec
       # next unless dfn[:twin]
       dfn.merge!(
         deserialize: lambda { |decorator, params, options|
-          puts decorator.represented
+          next if decorator.represented == Skip
 
           params = decorator.represented.deserialize!(params) # let them set up params. # FIXME: we could also get a new deserializer here.
 
+          # DISCUSS: shouldn't we simply call represented.deserialize() here?
           decorator.from_hash(params) # options.binding.deserialize_method.inspect
         }
       ) if dfn[:twin]
@@ -39,5 +49,8 @@ class PopulatorTest < MiniTest::Spec
     Deserializer.new(form).from_hash hash
 
     puts form.inspect
+
+    form.songs.size.must_equal 1
+    form.songs[0].title.must_equal "Bad"
   end
 end
